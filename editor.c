@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <SDL2/SDL.h>
+#include <SDL_image.h>
+
  int main(int argc, char *argv[])
 {
     SDL_Window *window = NULL;
@@ -17,7 +19,7 @@
         return EXIT_FAILURE;
     }
     /* On agit sur la fenêtre ici */
-    SDL_Delay(3000);
+    SDL_Delay(10000);
     SDL_Quit();
 return EXIT_SUCCESS;
 }
