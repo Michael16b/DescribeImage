@@ -1,6 +1,87 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <stdio.h>
+#include <dirent.h>
+#include <string.h>
+#include "types.h"
+
+int count_files(const char *directory) {
+    struct dirent *entry;
+    DIR *dir = opendir(directory);
+    int count = 0;
+
+    // Check if the directory opens correctly
+    if (dir == NULL) {
+        perror("Error opening directory");
+        return -1;  // Return -1 if there's an error
+    }
+
+    // Traverse each entry in the directory
+    while ((entry = readdir(dir)) != NULL) {
+        // Ignore entries "." and ".."
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+            continue;
+        }
+
+        // Check if the entry is a regular file (DT_REG means regular file)
+        if (entry->d_type == DT_REG) {
+            count++;
+        }
+    }
+
+    // Close the directory after reading
+    closedir(dir);
+
+    return count;
+}
+
+
+Dictionnaire count_word(Dictionnaire imgTable, char* words) {
+    int cpt = 0;
+
+    const char delim[] = "-";
+    char *token;
+
+    token = strtok(words, delim);
+    // Enlever le .jpg plus tard
+
+    // Boucle pour récupérer tous les tokens
+    while (token != NULL) {
+        printf("%s\n", token);
+        token = strtok(NULL, delim);
+        cpt++;
+    }
+    return imgTable;
+}
+
+Dictionnaire* getImgTable() {
+    const char* imgFolder = "./img";
+    struct dirent * entree;
+    DIR *repo = opendir(imgFolder);
+    Dictionnaire* imgTable ;
+    int cpt = 0;
+
+    imgTable = (Dictionnaire*)malloc(count_files(imgFolder)*sizeof(Dictionnaire));
+
+    if (repo == NULL) {
+        perror("Erreur lors de l'ouverture du dossier");
+        return imgTable;
+    }
+
+    while ((entree = readdir(repo)) != NULL) {
+        if (strcmp(entree-> d_name, ".") == 0 || strcmp(entree-> d_name, "..") == 0) {
+            continue;
+        }
+    imgTable[cpt].pathImg = entree->d_name;
+    count_word(imgTable[cpt], entree->d_name);
+
+    printf("Nom de fichier : %s\n", imgTable[cpt].pathImg);
+    cpt ++;
+    }
+    closedir(repo);
+
+    return imgTable;
+} 
 
 int main(int argc, char *argv[]) {
     // Initialiser SDL
@@ -38,7 +119,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Charger une image PNG
-    SDL_Surface *imageSurface = IMG_Load("victor.png");
+    SDL_Surface *imageSurface = IMG_Load("img/victor.png");
     if (!imageSurface) {
         printf("Erreur chargement image: %s\n", IMG_GetError());
         SDL_DestroyRenderer(renderer);
@@ -81,6 +162,10 @@ int main(int argc, char *argv[]) {
         SDL_RenderPresent(renderer);
     }
 
+    getImgTable();
+    printf("%d\n", NB_MAX_WORDS);
+    printf("%d\n", NB_MAX_LETTERS);
+
     // Nettoyer
     SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(renderer);
@@ -90,3 +175,6 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
+
+
+
