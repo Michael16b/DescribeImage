@@ -59,9 +59,7 @@ Dictionnaire count_word(Dictionnaire imgTable, char* words) {
 
     const char delim[] = "-";
     char *token;
-
     token = strtok(words, delim);
-    printf("Nom de fichier(TEST) : %s\n", token);
     // Enlever le .jpg plus tard
     imgTable.cptWord = 0;
     // Boucle pour récupérer tous les tokens
@@ -79,7 +77,13 @@ Dictionnaire count_word(Dictionnaire imgTable, char* words) {
         token = strtok(NULL, delim);
     }
 
-
+    // Commentaire
+    printf("Nom de fichier : %s\n", imgTable.pathImg);
+    for(int i = 0 ; i < imgTable.cptWord; i++){
+        printf("\t");
+        printf("Mot numéro [%d] = %s\n", i, imgTable.words[i]);
+    }
+    printf("\n\n");
 
     return imgTable;
 }
@@ -99,21 +103,14 @@ Dictionnaire* getImgTable(int countImgFiles) {
     }
 
     while ((entree = readdir(repo)) != NULL) {
+        char actualWord[NB_MAX_LETTERS];
         if (strcmp(entree-> d_name, ".") == 0 || strcmp(entree-> d_name, "..") == 0) {
             continue;
         }
-        
     imgTable[cpt].pathImg = entree->d_name;
     printf("%s\n", imgTable[cpt].pathImg);
-    count_word(imgTable[cpt], entree->d_name);
-    
-    // Commentaire
-    printf("Nom de fichier : %s\n", imgTable.pathImg);
-    for(int i = 0 ; i < imgTable.cptWord; i++){
-        printf("\t");
-        printf("Mot numéro [%d] = %s\n", i, imgTable.words[i]);
-    }
-    printf("\n\n");
+    strcpy(actualWord,entree->d_name);
+    count_word(imgTable[cpt], actualWord);
 
     cpt ++;
     }
@@ -132,12 +129,15 @@ int main(int argc, char *argv[]) {
     Dictionnaire* imgTable;
     int countImgFiles;
     char* randomImg;
+    char pathImg[NB_MAX_LETTERS];
     countImgFiles = count_files(IMAGE_FOLDER);
     imgTable = getImgTable(countImgFiles);
     srand(time(NULL));
 
     randomImg = imgTable[generate_random_int(0,countImgFiles-1)].pathImg;
-    printf("%s\n",randomImg);
+    strcpy(pathImg, IMAGE_FOLDER);
+    strcat(pathImg,randomImg);
+    printf("%s\n",pathImg);
 
     // Initialiser SDL
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
@@ -174,7 +174,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Charger une image PNG
-    SDL_Surface *imageSurface = IMG_Load("img/victor.png");
+    SDL_Surface *imageSurface = IMG_Load(pathImg);
     if (!imageSurface) {
         printf("Erreur chargement image: %s\n", IMG_GetError());
         SDL_DestroyRenderer(renderer);
