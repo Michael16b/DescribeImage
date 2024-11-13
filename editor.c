@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <dirent.h>
 #include <string.h>
+#include <time.h>
 #include "types.h"
 
 int count_files(const char *directory) {
@@ -34,8 +35,6 @@ int count_files(const char *directory) {
 
     return count;
 }
-
-
 char* GetRidOfString(char* wordOrSentence, const char* delim) {
     int len_delim = strlen(delim);
     char *pos;
@@ -55,8 +54,6 @@ char* GetRidOfString(char* wordOrSentence, const char* delim) {
 
     return result;
 }
-
-
 Dictionnaire count_word(Dictionnaire imgTable, char* words) {
     // int cpt = 0;
 
@@ -64,6 +61,7 @@ Dictionnaire count_word(Dictionnaire imgTable, char* words) {
     char *token;
 
     token = strtok(words, delim);
+    printf("Nom de fichier(TEST) : %s\n", token);
     // Enlever le .jpg plus tard
     imgTable.cptWord = 0;
     // Boucle pour récupérer tous les tokens
@@ -81,25 +79,19 @@ Dictionnaire count_word(Dictionnaire imgTable, char* words) {
         token = strtok(NULL, delim);
     }
 
-    // Commentaire
-    printf("Nom de fichier : %s\n", imgTable.pathImg);
-    for(int i = 0 ; i < imgTable.cptWord; i++){
-        printf("\t");
-        printf("Mot numéro [%d] = %s\n", i, imgTable.words[i]);
-    }
-    printf("\n\n");
+
 
     return imgTable;
 }
-
-Dictionnaire* getImgTable() {
+Dictionnaire* getImgTable(int countImgFiles) {
     const char* imgFolder = "./img";
     struct dirent * entree;
     DIR *repo = opendir(imgFolder);
     Dictionnaire* imgTable ;
     int cpt = 0;
+    
 
-    imgTable = (Dictionnaire*)malloc(count_files(imgFolder)*sizeof(Dictionnaire));
+    imgTable = (Dictionnaire*)malloc(countImgFiles*sizeof(Dictionnaire));
 
     if (repo == NULL) {
         perror("Erreur lors de l'ouverture du dossier");
@@ -110,8 +102,18 @@ Dictionnaire* getImgTable() {
         if (strcmp(entree-> d_name, ".") == 0 || strcmp(entree-> d_name, "..") == 0) {
             continue;
         }
+        
     imgTable[cpt].pathImg = entree->d_name;
+    printf("%s\n", imgTable[cpt].pathImg);
     count_word(imgTable[cpt], entree->d_name);
+    
+    // Commentaire
+    printf("Nom de fichier : %s\n", imgTable.pathImg);
+    for(int i = 0 ; i < imgTable.cptWord; i++){
+        printf("\t");
+        printf("Mot numéro [%d] = %s\n", i, imgTable.words[i]);
+    }
+    printf("\n\n");
 
     cpt ++;
     }
@@ -119,8 +121,24 @@ Dictionnaire* getImgTable() {
 
     return imgTable;
 } 
+int generate_random_int(int min, int max) {
+    int random_number = min + rand() % (max - min + 1);
+    printf("Nombre aléatoire entre %d et %d : %d\n", min, max, random_number);
+
+    return random_number;
+}
 
 int main(int argc, char *argv[]) {
+    Dictionnaire* imgTable;
+    int countImgFiles;
+    char* randomImg;
+    countImgFiles = count_files(IMAGE_FOLDER);
+    imgTable = getImgTable(countImgFiles);
+    srand(time(NULL));
+
+    randomImg = imgTable[generate_random_int(0,countImgFiles-1)].pathImg;
+    printf("%s\n",randomImg);
+
     // Initialiser SDL
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         printf("Erreur SDL: %s\n", SDL_GetError());
@@ -199,7 +217,7 @@ int main(int argc, char *argv[]) {
         SDL_RenderPresent(renderer);
     }
 
-    getImgTable();
+    
     printf("%d\n", NB_MAX_WORDS);
     printf("%d\n", NB_MAX_LETTERS);
 
