@@ -36,21 +36,58 @@ int count_files(const char *directory) {
 }
 
 
+char* GetRidOfString(char* wordOrSentence, const char* delim) {
+    int len_delim = strlen(delim);
+    char *pos;
+
+    // Créer une copie modifiable de `wordOrSentence` pour ne pas modifier l'original
+    char *result = malloc(strlen(wordOrSentence) + 1);
+    if (result == NULL) {
+        return NULL; // Gestion de l'erreur d'allocation
+    }
+    strcpy(result, wordOrSentence);
+
+    // Tant que la sous-chaîne est trouvée dans la chaîne principale
+    while ((pos = strstr(result, delim)) != NULL) {
+        // Décaler tout le texte après la sous-chaîne vers la gauche
+        memmove(pos, pos + len_delim, strlen(pos + len_delim) + 1);
+    }
+
+    return result;
+}
+
+
 Dictionnaire count_word(Dictionnaire imgTable, char* words) {
-    int cpt = 0;
+    // int cpt = 0;
 
     const char delim[] = "-";
     char *token;
 
     token = strtok(words, delim);
     // Enlever le .jpg plus tard
-
+    imgTable.cptWord = 0;
     // Boucle pour récupérer tous les tokens
     while (token != NULL) {
-        printf("%s\n", token);
+        // Enlevage des extensions
+        token = GetRidOfString(token, ".jpg");
+        token = GetRidOfString(token, ".png");
+        token = GetRidOfString(token, ".svg");
+        // Affectation du mot x dans le tableau de mots de l'image
+        strncpy(imgTable.words[imgTable.cptWord], token, NB_MAX_LETTERS - 1);
+        imgTable.words[imgTable.cptWord][NB_MAX_LETTERS - 1] = '\0';
+        // Incrémentation du compteur
+        imgTable.cptWord ++;
         token = strtok(NULL, delim);
-        cpt++;
     }
+
+    // Commentaire
+    printf("Nom de fichier : %s\n", imgTable.pathImg);
+    for(int i = 0 ; i < imgTable.cptWord; i++){
+        printf("\t");
+        printf("Mot numéro [%d] = %s\n", i, imgTable.words[i]);
+    }
+    printf("\n\n");
+
     return imgTable;
 }
 
@@ -75,7 +112,6 @@ Dictionnaire* getImgTable() {
     imgTable[cpt].pathImg = entree->d_name;
     count_word(imgTable[cpt], entree->d_name);
 
-    printf("Nom de fichier : %s\n", imgTable[cpt].pathImg);
     cpt ++;
     }
     closedir(repo);
