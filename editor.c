@@ -69,6 +69,7 @@ Dictionnaire count_word(Dictionnaire imgTable, char* words) {
     // Boucle pour récupérer tous les tokens
     while (token != NULL) {
         // Enlevage des extensions
+        // TODO Liste de chaines plutot qu'un appel multiple
         token = GetRidOfString(token, ".jpg");
         token = GetRidOfString(token, ".png");
         token = GetRidOfString(token, ".svg");
