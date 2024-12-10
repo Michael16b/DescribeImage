@@ -1,5 +1,6 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <SDL2/SDL_ttf.h>
 #include <stdio.h>
 #include <dirent.h>
 #include <string.h>
@@ -125,6 +126,52 @@ int generate_random_int(int min, int max) {
     return random_number;
 }
 
+
+int init_sdl(SDL_Window **window, SDL_Renderer **renderer) {
+    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+        printf("Erreur SDL: %s\n", SDL_GetError());
+        return 0;
+    }
+
+    if (IMG_Init(IMG_INIT_PNG) != IMG_INIT_PNG) {
+        printf("Erreur SDL_image: %s\n", IMG_GetError());
+        SDL_Quit();
+        return 0;
+    }
+
+    if (TTF_Init() != 0) {
+        printf("Erreur SDL_ttf: %s\n", TTF_GetError());
+        IMG_Quit();
+        SDL_Quit();
+        return 0;
+    }
+
+    *window = SDL_CreateWindow("Interface graphique SDL2",
+                               SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+                               640, 480, SDL_WINDOW_SHOWN);
+    if (!*window) {
+        printf("Erreur création fenêtre: %s\n", SDL_GetError());
+        TTF_Quit();
+        IMG_Quit();
+        SDL_Quit();
+        return 0;
+    }
+
+    *renderer = SDL_CreateRenderer(*window, -1, SDL_RENDERER_SOFTWARE);
+    if (!*renderer) {
+        printf("Erreur création renderer: %s\n", SDL_GetError());
+        SDL_DestroyWindow(*window);
+        TTF_Quit();
+        IMG_Quit();
+        SDL_Quit();
+        return 0;
+    }
+
+    return 1;
+}
+
+
+
 int main(int argc, char *argv[]) {
     Dictionnaire* imgTable;
     int countImgFiles;
@@ -133,46 +180,45 @@ int main(int argc, char *argv[]) {
     countImgFiles = count_files(IMAGE_FOLDER);
     imgTable = getImgTable(countImgFiles);
     srand(time(NULL));
+    
+    // Window Game    
+    SDL_Window *window = NULL;
+    SDL_Renderer *renderer = NULL;
+
+    
+    char fontName[NB_MAX_LETTERS];
+    strcpy(fontName, FONT_FOLDER);
+    strcat(fontName, "arial.ttf");
+    printf("FontName: %s\n", fontName);
+
+    // Texte entré par l'utilisateur
+    char inputText[NB_MAX_LETTERS] = "";
+    int inputActive = 1;
+
+    int running = 1;
+    SDL_Event event;
 
     randomImg = imgTable[generate_random_int(0,countImgFiles-1)].pathImg;
     strcpy(pathImg, IMAGE_FOLDER);
     strcat(pathImg,randomImg);
     printf("%s\n",pathImg);
 
-    // Initialiser SDL
-    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-        printf("Erreur SDL: %s\n", SDL_GetError());
+    if (!init_sdl(&window, &renderer)) {
         return 1;
     }
 
-    // Initialiser SDL_image
-    if (IMG_Init(IMG_INIT_PNG) != IMG_INIT_PNG) {
-        printf("Erreur SDL_image: %s\n", IMG_GetError());
-        SDL_Quit();
-        return 1;
-    }
-
-    // Créer une fenêtre
-    SDL_Window *window = SDL_CreateWindow("Charger une image PNG avec SDL2", 
-                                          SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 
-                                          640, 480, SDL_WINDOW_SHOWN);
-    if (!window) {
-        printf("Erreur création fenêtre: %s\n", SDL_GetError());
-        IMG_Quit();
-        SDL_Quit();
-        return 1;
-    }
-
-    // Créer un renderer
-    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
-    if (!renderer) {
-        printf("Erreur création renderer: %s\n", SDL_GetError());
-        SDL_DestroyWindow(window);
-        IMG_Quit();
-        SDL_Quit();
-        return 1;
-    }
-
+    // Charger la police pour afficher du texte
+    // TTF_Font *font = TTF_OpenFont(fontName, 24);
+    // if (!font) {
+    //     printf("Erreur chargement police: %s\n", TTF_GetError());
+    //     SDL_DestroyRenderer(renderer);
+    //     SDL_DestroyWindow(window);
+    //     TTF_Quit();
+    //     IMG_Quit();
+    //     SDL_Quit();
+    //     return 1;
+    // }
+    
     // Charger une image PNG
     SDL_Surface *imageSurface = IMG_Load(pathImg);
     if (!imageSurface) {
@@ -198,8 +244,6 @@ int main(int argc, char *argv[]) {
     }
 
     // Boucle d'événements
-    int running = 1;
-    SDL_Event event;
     while (running) {
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
@@ -230,6 +274,5 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
-
 
 
