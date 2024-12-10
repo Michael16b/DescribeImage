@@ -1,6 +1,7 @@
 #define NB_MAX_WORDS 5
 #define NB_MAX_LETTERS 50
 #define IMAGE_FOLDER "./img/"
+#define FONT_FOLDER "./font/"
 
 typedef struct Dictionnaire {
     char* pathImg;
