@@ -8,7 +8,13 @@ sudo apt-get install libsdl2-image-dev
 `
 
 ## Compilation
-`gcc -o editor editor.c -lSDL2 -lSDL2_image
+make 
 ./editor
-`
+
+
+## Compilation lorsque l'executable existe déjà
+make rebuild
+
+## Nettoyage
+make clean
 
