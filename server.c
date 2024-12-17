@@ -1,5 +1,5 @@
 /*----------------------------------------------
-Serveur UDP
+Serveur RUDP
 ------------------------------------------------*/
 #include <stdlib.h>
 #include <stdio.h>
@@ -9,11 +9,11 @@ Serveur UDP
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-typedef struct sockaddr sockaddr;
-typedef struct sockaddr_in sockaddr_in;
-
 #define PORT 5000
 #define BUFFER_SIZE 256
+
+typedef struct sockaddr sockaddr;
+typedef struct sockaddr_in sockaddr_in;
 
 int main(int argc, char **argv) {
     int socket_descriptor;
@@ -38,7 +38,7 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    printf("Serveur UDP en attente sur le port %d...\n", PORT);
+    printf("Serveur RUDP en attente sur le port %d...\n", PORT);
 
     /* Attente des messages */
     for (;;) {
@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
         memset(buffer, 0, BUFFER_SIZE);
 
         /* Réception d'un message */
-        int n = recvfrom(socket_descriptor, buffer, BUFFER_SIZE-1, 0, (sockaddr*)&adresse_client, &client_len);
+        int n = recvfrom(socket_descriptor, buffer, BUFFER_SIZE - 1, 0, (sockaddr*)&adresse_client, &client_len);
         if (n < 0) {
             perror("Erreur : réception du message échouée.");
             continue;
@@ -55,17 +55,24 @@ int main(int argc, char **argv) {
         buffer[n] = '\0';
         printf("Message reçu : %s\n", buffer);
 
+        /* Envoi de l'ACK au client */
+        if (sendto(socket_descriptor, "ACK", strlen("ACK"), 0, (sockaddr*)&adresse_client, client_len) < 0) {
+            perror("Erreur : envoi de l'ACK échoué.");
+        } else {
+            printf("ACK envoyé au client.\n");
+        }
+
         /* Traitement du message */
         buffer[0] = 'R';
         buffer[1] = 'E';
         buffer[n] = '#';
-        buffer[n+1] = '\0';
+        buffer[n + 1] = '\0';
 
         printf("Message après traitement : %s\n", buffer);
 
-        /* Envoi de la réponse */
+        /* Envoi de la réponse au client */
         if (sendto(socket_descriptor, buffer, strlen(buffer), 0, (sockaddr*)&adresse_client, client_len) < 0) {
-            perror("Erreur : impossible d'envoyer la réponse.");
+            perror("Erreur : envoi de la réponse échoué.");
         } else {
             printf("Réponse envoyée au client.\n");
         }

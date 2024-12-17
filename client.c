@@ -1,6 +1,6 @@
 /*-----------------------------------------------------------
-Client UDP
-Commande : client_udp <adresse-serveur> <message-a-transmettre>
+Client RUDP
+Commande : client_rudp <adresse-serveur> <message-a-transmettre>
 ------------------------------------------------------------*/
 #include <stdlib.h>
 #include <stdio.h>
@@ -9,6 +9,11 @@ Commande : client_udp <adresse-serveur> <message-a-transmettre>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <time.h>
+
+#define TIMEOUT 2       // Timeout pour attendre un ACK (en secondes)
+#define MAX_RETRIES 5   // Nombre maximum de tentatives d'envoi
+#define PORT 5000
 
 typedef struct sockaddr sockaddr;
 typedef struct sockaddr_in sockaddr_in;
@@ -17,10 +22,12 @@ int main(int argc, char **argv) {
     int socket_descriptor;
     sockaddr_in adresse_serveur;
     char buffer[256];
+    char ack[256];
     char *host, *mesg;
+    int retries = 0;
 
     if (argc != 3) {
-        perror("usage : client_udp <adresse-serveur> <message-a-transmettre>");
+        perror("usage : client_rudp <adresse-serveur> <message-a-transmettre>");
         exit(1);
     }
 
@@ -39,30 +46,45 @@ int main(int argc, char **argv) {
     /* Configuration de l'adresse du serveur */
     memset(&adresse_serveur, 0, sizeof(adresse_serveur));
     adresse_serveur.sin_family = AF_INET;
-    adresse_serveur.sin_port = htons(5000);
+    adresse_serveur.sin_port = htons(PORT);
     if (inet_pton(AF_INET, host, &adresse_serveur.sin_addr) <= 0) {
         perror("Erreur : adresse serveur invalide.");
         exit(1);
     }
 
-    /* Envoi du message au serveur */
-    if (sendto(socket_descriptor, mesg, strlen(mesg), 0, (sockaddr*)&adresse_serveur, sizeof(adresse_serveur)) < 0) {
-        perror("Erreur : impossible d'envoyer le message.");
-        exit(1);
+    /* Mécanisme RUDP - Envoi avec ACK */
+    while (retries < MAX_RETRIES) {
+        /* Envoi du message au serveur */
+        printf("Tentative d'envoi %d...\n", retries + 1);
+        if (sendto(socket_descriptor, mesg, strlen(mesg), 0, (sockaddr*)&adresse_serveur, sizeof(adresse_serveur)) < 0) {
+            perror("Erreur : impossible d'envoyer le message.");
+            exit(1);
+        }
+
+        /* Configuration du timeout pour la socket */
+        struct timeval tv;
+        tv.tv_sec = TIMEOUT;
+        tv.tv_usec = 0;
+        setsockopt(socket_descriptor, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+
+        /* Attente de l'ACK */
+        socklen_t len = sizeof(adresse_serveur);
+        int n = recvfrom(socket_descriptor, ack, sizeof(ack) - 1, 0, (sockaddr*)&adresse_serveur, &len);
+        if (n > 0) {
+            ack[n] = '\0';
+            if (strcmp(ack, "ACK") == 0) {
+                printf("ACK reçu du serveur. Message transmis avec succès.\n");
+                break;
+            }
+        } else {
+            printf("Aucun ACK reçu. Nouvelle tentative...\n");
+            retries++;
+        }
     }
 
-    printf("Message envoyé au serveur.\n");
-
-    /* Réception de la réponse du serveur */
-    socklen_t len = sizeof(adresse_serveur);
-    int n = recvfrom(socket_descriptor, buffer, sizeof(buffer)-1, 0, (sockaddr*)&adresse_serveur, &len);
-    if (n < 0) {
-        perror("Erreur : réception échouée.");
-        exit(1);
+    if (retries == MAX_RETRIES) {
+        printf("Erreur : échec de la transmission après %d tentatives.\n", MAX_RETRIES);
     }
-
-    buffer[n] = '\0';
-    printf("Réponse du serveur : %s\n", buffer);
 
     close(socket_descriptor);
     return 0;
