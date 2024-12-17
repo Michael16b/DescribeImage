@@ -1,5 +1,5 @@
 /*----------------------------------------------
-Serveur RUDP
+Serveur RUDP multiclient
 ------------------------------------------------*/
 #include <stdlib.h>
 #include <stdio.h>
@@ -8,12 +8,62 @@ Serveur RUDP
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <pthread.h>
 
 #define PORT 5000
 #define BUFFER_SIZE 256
 
 typedef struct sockaddr sockaddr;
 typedef struct sockaddr_in sockaddr_in;
+
+/* Structure pour passer les paramètres au thread */
+typedef struct {
+    int socket_descriptor;
+    sockaddr_in client_address;
+    socklen_t client_length;
+    char message[BUFFER_SIZE];
+} client_info_t;
+
+/* Fonction pour gérer un client */
+void* gerer_client(void* arg) {
+    client_info_t* client_info = (client_info_t*)arg;
+    int socket_descriptor = client_info->socket_descriptor;
+    sockaddr_in client_address = client_info->client_address;
+    socklen_t client_length = client_info->client_length;
+    char* message = client_info->message;
+    char response[BUFFER_SIZE];
+
+    printf("Nouveau client connecté.\n");
+    printf("Message reçu : %s\n", message);
+
+    /* Envoi de l'ACK au client */
+    if (sendto(socket_descriptor, "ACK", strlen("ACK"), 0, (sockaddr*)&client_address, client_length) < 0) {
+        perror("Erreur : envoi de l'ACK échoué.");
+        pthread_exit(NULL);
+    } else {
+        printf("ACK envoyé au client.\n");
+    }
+
+    /* Traitement du message */
+    message[0] = 'R';
+    message[1] = 'E';
+    int length = strlen(message);
+    message[length] = '#';
+    message[length + 1] = '\0';
+
+    printf("Message après traitement : %s\n", message);
+
+    /* Envoi de la réponse au client */
+    if (sendto(socket_descriptor, message, strlen(message), 0, (sockaddr*)&client_address, client_length) < 0) {
+        perror("Erreur : envoi de la réponse échoué.");
+    } else {
+        printf("Réponse envoyée au client.\n");
+    }
+
+    printf("Client traité. Fermeture du thread.\n");
+    free(client_info);
+    pthread_exit(NULL);
+}
 
 int main(int argc, char **argv) {
     int socket_descriptor;
@@ -38,10 +88,10 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    printf("Serveur RUDP en attente sur le port %d...\n", PORT);
+    printf("Serveur RUDP multiclient en attente sur le port %d...\n", PORT);
 
-    /* Attente des messages */
-    for (;;) {
+    /* Boucle infinie pour attendre les clients */
+    while (1) {
         socklen_t client_len = sizeof(adresse_client);
         memset(buffer, 0, BUFFER_SIZE);
 
@@ -53,28 +103,27 @@ int main(int argc, char **argv) {
         }
 
         buffer[n] = '\0';
-        printf("Message reçu : %s\n", buffer);
+        printf("Message reçu d'un client : %s\n", buffer);
 
-        /* Envoi de l'ACK au client */
-        if (sendto(socket_descriptor, "ACK", strlen("ACK"), 0, (sockaddr*)&adresse_client, client_len) < 0) {
-            perror("Erreur : envoi de l'ACK échoué.");
-        } else {
-            printf("ACK envoyé au client.\n");
+        /* Allocation de mémoire pour stocker les informations du client */
+        client_info_t* client_info = (client_info_t*)malloc(sizeof(client_info_t));
+        if (!client_info) {
+            perror("Erreur : échec de l'allocation mémoire.");
+            continue;
         }
 
-        /* Traitement du message */
-        buffer[0] = 'R';
-        buffer[1] = 'E';
-        buffer[n] = '#';
-        buffer[n + 1] = '\0';
+        client_info->socket_descriptor = socket_descriptor;
+        client_info->client_address = adresse_client;
+        client_info->client_length = client_len;
+        strncpy(client_info->message, buffer, BUFFER_SIZE);
 
-        printf("Message après traitement : %s\n", buffer);
-
-        /* Envoi de la réponse au client */
-        if (sendto(socket_descriptor, buffer, strlen(buffer), 0, (sockaddr*)&adresse_client, client_len) < 0) {
-            perror("Erreur : envoi de la réponse échoué.");
+        /* Création d'un thread pour gérer ce client */
+        pthread_t thread_id;
+        if (pthread_create(&thread_id, NULL, gerer_client, (void*)client_info) != 0) {
+            perror("Erreur : impossible de créer un thread pour le client.");
+            free(client_info);
         } else {
-            printf("Réponse envoyée au client.\n");
+            pthread_detach(thread_id); // Libère automatiquement les ressources à la fin du thread
         }
     }
 
