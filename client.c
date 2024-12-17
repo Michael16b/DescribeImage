@@ -8,6 +8,9 @@ client <adresse-serveur> <message-a-transmettre>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <string.h>
+#include <unistd.h>     // Pour write, read, close, sleep, et gethostname
+#include <netinet/in.h> // Pour sockaddr_in
+#include <arpa/inet.h>  // Pour inet_addr
 
 typedef struct sockaddr 	sockaddr;
 typedef struct sockaddr_in 	sockaddr_in;

@@ -1,8 +1,8 @@
 # Nom de l'exécutable
-TARGET = editor
+TARGET = editor client server
 
 # Fichier source
-SRC = editor.c
+SRC = editor.c client.c server.c
 
 # Compilateur et options
 CC = gcc

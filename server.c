@@ -7,6 +7,9 @@ Serveur à lancer avant le client
 #include <sys/socket.h>
 #include <netdb.h> 		/* pour hostent, servent */
 #include <string.h> 		/* pour bcopy, ... */  
+#include <unistd.h>     // Pour write, read, close, sleep, et gethostname
+#include <netinet/in.h> // Pour sockaddr_in
+#include <arpa/inet.h>  // Pour inet_addr
 #define TAILLE_MAX_NOM 256
 
 typedef struct sockaddr sockaddr;
@@ -41,13 +44,13 @@ void renvoi (int sock) {
     
     printf("message envoye. \n");
         
-    return;
+    return ;
     
 }
 /*------------------------------------------------------*/
 
 /*------------------------------------------------------*/
-main(int argc, char **argv) {
+int main(int argc, char **argv) {
   
     int 		socket_descriptor, 		/* descripteur de socket */
 			nouv_socket_descriptor, 	/* [nouveau] descripteur de socket */
