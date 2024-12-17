@@ -146,46 +146,42 @@ int init_sdl(SDL_Window **window, SDL_Renderer **renderer) {
         return 0;
     }
 
-    *window = SDL_CreateWindow("Interface graphique SDL2",
-                               SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                               640, 480, SDL_WINDOW_SHOWN);
-    if (!*window) {
-        printf("Erreur création fenêtre: %s\n", SDL_GetError());
-        TTF_Quit();
-        IMG_Quit();
-        SDL_Quit();
-        return 0;
-    }
-
-    *renderer = SDL_CreateRenderer(*window, -1, SDL_RENDERER_SOFTWARE);
-    if (!*renderer) {
-        printf("Erreur création renderer: %s\n", SDL_GetError());
-        SDL_DestroyWindow(*window);
-        TTF_Quit();
-        IMG_Quit();
-        SDL_Quit();
-        return 0;
-    }
-
     return 1;
 }
 
 
 
 int main(int argc, char *argv[]) {
+
+    // Window Game    
+    SDL_Window *window = SDL_CreateWindow("Charger une image PNG avec SDL2", 
+                                          SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 
+                                          640, 480, SDL_WINDOW_SHOWN);
+    if (!window) {
+        printf("Erreur création fenêtre: %s\n", SDL_GetError());
+        IMG_Quit();
+        SDL_Quit();
+        return 1;
+    }
+
+    // Créer un renderer
+    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
+    if (!renderer) {
+        printf("Erreur création renderer: %s\n", SDL_GetError());
+        SDL_DestroyWindow(window);
+        IMG_Quit();
+        SDL_Quit();
+        return 1;
+    }
+
+
     Dictionnaire* imgTable;
     int countImgFiles;
     char* randomImg;
     char pathImg[NB_MAX_LETTERS];
     countImgFiles = count_files(IMAGE_FOLDER);
     imgTable = getImgTable(countImgFiles);
-    srand(time(NULL));
-    
-    // Window Game    
-    SDL_Window *window = NULL;
-    SDL_Renderer *renderer = NULL;
-
-    
+    srand(time(NULL));    
     char fontName[NB_MAX_LETTERS];
     strcpy(fontName, FONT_FOLDER);
     strcat(fontName, "arial.ttf");
@@ -197,27 +193,33 @@ int main(int argc, char *argv[]) {
 
     int running = 1;
     SDL_Event event;
+    
+    // Rectangle pour réduire la taille de l'image
+    SDL_Rect imageRect = {220, 50, 200, 150}; // Position (x, y) et taille (w, h)
 
     randomImg = imgTable[generate_random_int(0,countImgFiles-1)].pathImg;
     strcpy(pathImg, IMAGE_FOLDER);
     strcat(pathImg,randomImg);
-    printf("%s\n",pathImg);
-
     if (!init_sdl(&window, &renderer)) {
         return 1;
     }
 
+    
+    
+
     // Charger la police pour afficher du texte
-    // TTF_Font *font = TTF_OpenFont(fontName, 24);
-    // if (!font) {
-    //     printf("Erreur chargement police: %s\n", TTF_GetError());
-    //     SDL_DestroyRenderer(renderer);
-    //     SDL_DestroyWindow(window);
-    //     TTF_Quit();
-    //     IMG_Quit();
-    //     SDL_Quit();
-    //     return 1;
-    // }
+    TTF_Font *font = TTF_OpenFont(fontName, 24);
+    if (!font) {
+        printf("Erreur chargement police: %s\n", TTF_GetError());
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        TTF_Quit();
+        IMG_Quit();
+        SDL_Quit();
+        return 1;
+    }
+
+    
     
     // Charger une image PNG
     SDL_Surface *imageSurface = IMG_Load(pathImg);
@@ -229,6 +231,8 @@ int main(int argc, char *argv[]) {
         SDL_Quit();
         return 1;
     }
+
+    
 
     // Créer une texture à partir de la surface
     SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, imageSurface);
@@ -243,36 +247,74 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // Boucle d'événements
+    
+
+    
+
     while (running) {
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
                 running = 0;
             }
+            if (event.type == SDL_TEXTINPUT && inputActive) {
+                strncat(inputText, event.text.text, sizeof(inputText) - strlen(inputText) - 1);
+            }
+            if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_BACKSPACE && inputActive) {
+                size_t len = strlen(inputText);
+                if (len > 0) {
+                    inputText[len - 1] = '\0';
+                }
+            }
         }
 
+        
+
+
+
         // Effacer l'écran
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderClear(renderer);
 
-        // Dessiner la texture
-        SDL_RenderCopy(renderer, texture, NULL, NULL);
+        // Dessiner l'image
+        SDL_RenderCopy(renderer, texture, NULL, &imageRect);
 
-        // Afficher
+        // Dessiner le champ de texte
+        SDL_Rect inputRect = {100, 300, 440, 50};
+        SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
+        SDL_RenderFillRect(renderer, &inputRect);
+
+        
+
+        // Afficher le texte
+        SDL_Color textColor = {0, 0, 0};
+        SDL_Surface *textSurface = TTF_RenderText_Blended(font, inputText, textColor);
+        SDL_Texture *textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+
+
+        SDL_Rect textRect = {inputRect.x + 5, inputRect.y + 5, inputRect.w, inputRect.h};
+        SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
+
+         
+       
+
+        SDL_FreeSurface(textSurface);
+        
+        SDL_DestroyTexture(textTexture);
+
+        
+
+        // Afficher le rendu
         SDL_RenderPresent(renderer);
+        
     }
 
-    
-    printf("%d\n", NB_MAX_WORDS);
-    printf("%d\n", NB_MAX_LETTERS);
-
-    // Nettoyer
     SDL_DestroyTexture(texture);
+    TTF_CloseFont(font);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
+    TTF_Quit();
     IMG_Quit();
     SDL_Quit();
 
     return 0;
 }
-
-
