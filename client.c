@@ -10,32 +10,29 @@ Commande : client_rudp <adresse-serveur> <message-a-transmettre>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <time.h>
+#include "./types.h"
 
 #define TIMEOUT 2       // Timeout pour attendre un ACK (en secondes)
 #define MAX_RETRIES 5   // Nombre maximum de tentatives d'envoi
-#define PORT 5000
+
 
 typedef struct sockaddr sockaddr;
 typedef struct sockaddr_in sockaddr_in;
 
-int main(int argc, char **argv) {
+
+
+void SendMessage(char msg[NB_MAX_LETTERS]){
     int socket_descriptor;
     sockaddr_in adresse_serveur;
-    char buffer[256];
+    //char buffer[256];
     char ack[256];
-    char *host, *mesg;
+    char *host;
     int retries = 0;
 
-    if (argc != 3) {
-        perror("usage : client_rudp <adresse-serveur> <message-a-transmettre>");
-        exit(1);
-    }
-
-    host = argv[1];
-    mesg = argv[2];
+    host = ADRESS ;
 
     printf("Adresse du serveur : %s\n", host);
-    printf("Message envoyé     : %s\n", mesg);
+    printf("Message envoyé     : %s\n", msg);
 
     /* Création de la socket UDP */
     if ((socket_descriptor = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -56,7 +53,7 @@ int main(int argc, char **argv) {
     while (retries < MAX_RETRIES) {
         /* Envoi du message au serveur */
         printf("Tentative d'envoi %d...\n", retries + 1);
-        if (sendto(socket_descriptor, mesg, strlen(mesg), 0, (sockaddr*)&adresse_serveur, sizeof(adresse_serveur)) < 0) {
+        if (sendto(socket_descriptor, msg, strlen(msg), 0, (sockaddr*)&adresse_serveur, sizeof(adresse_serveur)) < 0) {
             perror("Erreur : impossible d'envoyer le message.");
             exit(1);
         }
@@ -87,5 +84,4 @@ int main(int argc, char **argv) {
     }
 
     close(socket_descriptor);
-    return 0;
 }

@@ -9,12 +9,21 @@ Serveur RUDP multiclient
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <pthread.h>
+#include "./types.h"
+#include <signal.h>
+#include <sys/time.h>
+#include <arpa/inet.h> 
+#include <netinet/in.h> 
 
-#define PORT 5000
 #define BUFFER_SIZE 256
 
 typedef struct sockaddr sockaddr;
 typedef struct sockaddr_in sockaddr_in;
+
+void timer_handler(int signum) {
+    static int count = 0;
+    printf("Timer déclenché %d fois\n", ++count);
+}
 
 /* Structure pour passer les paramètres au thread */
 typedef struct {
@@ -31,10 +40,14 @@ void* gerer_client(void* arg) {
     sockaddr_in client_address = client_info->client_address;
     socklen_t client_length = client_info->client_length;
     char* message = client_info->message;
-    char response[BUFFER_SIZE];
+    //char response[BUFFER_SIZE];
+    char *ip_address = inet_ntoa(client_address.sin_addr);
+    int port = ntohs(client_address.sin_port);
 
     printf("Nouveau client connecté.\n");
     printf("Message reçu : %s\n", message);
+    printf("Adresse IP du client : %s\n", ip_address);
+    printf("Port du client : %d\n", port);
 
     /* Envoi de l'ACK au client */
     if (sendto(socket_descriptor, "ACK", strlen("ACK"), 0, (sockaddr*)&client_address, client_length) < 0) {
@@ -69,6 +82,8 @@ int main(int argc, char **argv) {
     int socket_descriptor;
     sockaddr_in adresse_locale, adresse_client;
     char buffer[BUFFER_SIZE];
+    struct sigaction sa;
+    struct itimerval timer;
 
     /* Création de la socket UDP */
     if ((socket_descriptor = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -89,6 +104,19 @@ int main(int argc, char **argv) {
     }
 
     printf("Serveur RUDP multiclient en attente sur le port %d...\n", PORT);
+
+    // Configurer le gestionnaire de signal
+    sa.sa_handler = &timer_handler;
+    sa.sa_flags = SA_RESTART;
+    sigaction(SIGALRM, &sa, NULL);
+
+    // Configurer le timer (délai initial et intervalle)
+    timer.it_value.tv_sec = 1; // 1 seconde avant le premier déclenchement
+    timer.it_value.tv_usec = 0;
+    timer.it_interval.tv_sec = 1; // Répétition toutes les 1 seconde
+    timer.it_interval.tv_usec = 0;
+
+    setitimer(ITIMER_REAL, &timer, NULL);
 
     /* Boucle infinie pour attendre les clients */
     while (1) {

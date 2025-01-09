@@ -1,25 +1,18 @@
-# Nom de l'exécutable
-TARGET = editor client server
-
-# Fichier source
-SRC = editor.c client.c server.c
-
-# Compilateur et options
 CC = gcc
-CFLAGS = -Wall -Wextra -g
-LDFLAGS = -lSDL2 -lSDL2_image
+CFLAGS = -Wall -g
+SERVER_SRC = server.c client.c
+SERVER_OUT = server
 
-# Règle par défaut : compile l'exécutable
-all: $(TARGET)
+MAIN_SRC = main.c client.c
+MAIN_OUT = main
 
-# Règle pour générer l'exécutable
-$(TARGET): $(SRC)
-	$(CC) $(CFLAGS) -o $(TARGET) $(SRC) $(LDFLAGS)
+all: $(SERVER_OUT) $(MAIN_OUT)
 
-# Nettoyage des fichiers temporaires
+$(SERVER_OUT): $(SERVER_SRC)
+	$(CC) $(CFLAGS) -o $(SERVER_OUT) $(SERVER_SRC)
+
+$(MAIN_OUT): $(MAIN_SRC)
+	$(CC) $(CFLAGS) -o $(MAIN_OUT) $(MAIN_SRC)
+
 clean:
-	rm -f $(TARGET)
-
-# Récompilation complète
-rebuild: clean all
-
+	rm -f $(SERVER_OUT) $(MAIN_OUT)
