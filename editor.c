@@ -154,7 +154,7 @@ int init_sdl(SDL_Window **window, SDL_Renderer **renderer) {
 int main(int argc, char *argv[]) {
 
     // Window Game    
-    SDL_Window *window = SDL_CreateWindow("Charger une image PNG avec SDL2", 
+    SDL_Window *window = SDL_CreateWindow("DescribeImage", 
                                           SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 
                                           640, 480, SDL_WINDOW_SHOWN);
     if (!window) {
@@ -288,18 +288,14 @@ int main(int argc, char *argv[]) {
         // Afficher le texte
         SDL_Color textColor = {0, 0, 0};
         SDL_Surface *textSurface = TTF_RenderText_Blended(font, inputText, textColor);
-        SDL_Texture *textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
-
-
-        SDL_Rect textRect = {inputRect.x + 5, inputRect.y + 5, inputRect.w, inputRect.h};
-        SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
-
-         
-       
-
-        SDL_FreeSurface(textSurface);
-        
-        SDL_DestroyTexture(textTexture);
+        if (textSurface) {
+            SDL_Texture *textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+            SDL_Rect textRect = {inputRect.x + 5, inputRect.y + (inputRect.h - textSurface->h) / 2, textSurface->w, textSurface->h};
+            
+            SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
+            SDL_FreeSurface(textSurface);     
+            SDL_DestroyTexture(textTexture);
+        }
 
         
 
