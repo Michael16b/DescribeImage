@@ -126,6 +126,16 @@ int generate_random_int(int min, int max) {
     return random_number;
 }
 
+int checkWord(const Dictionnaire* dict, const char* mot) {
+    if (dict == NULL || dict->pathImg == NULL || mot == NULL) {
+        return 0; // Erreur ou mot non trouvé
+    }
+    if (strstr(dict->pathImg, mot) != NULL) {
+        return 1; // Mot trouvé
+    }
+    return 0; // Mot non trouvé
+}
+
 
 int init_sdl(SDL_Window **window, SDL_Renderer **renderer) {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
@@ -247,24 +257,36 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    const char *trueText = pathImg;
+
     
+    int validText = 0; // Boolean (1 = true, 0 = false)
 
     
 
     while (running) {
         while (SDL_PollEvent(&event)) {
+            printf("Bon texte: %s\n", imgTable->words[0]);
             if (event.type == SDL_QUIT) {
                 running = 0;
             }
             if (event.type == SDL_TEXTINPUT && inputActive) {
                 strncat(inputText, event.text.text, sizeof(inputText) - strlen(inputText) - 1);
             }
-            if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_BACKSPACE && inputActive) {
+        if (event.type == SDL_KEYDOWN) {
+            if (event.key.keysym.sym == SDLK_BACKSPACE && inputActive) {
                 size_t len = strlen(inputText);
                 if (len > 0) {
                     inputText[len - 1] = '\0';
                 }
+            } else if (event.key.keysym.sym == SDLK_RETURN && inputActive) {
+                if (strlen(inputText) > 0) { // Vérifier si le champ de texte n'est pas vide
+                    validText = strcmp(inputText, trueText) == 0 ? 1 : 0; // Comparer avec trueText
+                    inputText[0] = '\0'; // Réinitialiser le texte saisi
+                    printf("Texte valide: %d\n", validText); // Debug: afficher le résultat
+                }
             }
+        }
         }
 
         
