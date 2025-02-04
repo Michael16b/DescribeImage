@@ -7,7 +7,7 @@
 #include <time.h>
 #include "types.h"
 
-int seconds
+int seconds;
 
 int count_files(const char *directory) {
     struct dirent *entry;
@@ -268,7 +268,6 @@ int main(int argc, char *argv[]) {
 
     while (running) {
         while (SDL_PollEvent(&event)) {
-            printf("Bon texte: %s\n", imgTable->words[0]);
             if (event.type == SDL_QUIT) {
                 running = 0;
             }
