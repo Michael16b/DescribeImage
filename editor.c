@@ -7,6 +7,8 @@
 #include <time.h>
 #include "types.h"
 
+int seconds
+
 int count_files(const char *directory) {
     struct dirent *entry;
     DIR *dir = opendir(directory);
@@ -281,9 +283,11 @@ int main(int argc, char *argv[]) {
                 }
             } else if (event.key.keysym.sym == SDLK_RETURN && inputActive) {
                 if (strlen(inputText) > 0) { // Vérifier si le champ de texte n'est pas vide
+                    printf("Texte valide(Utilisateur): %s\n", inputText);
+                    printf("Texte valide(Server): %s\n", trueText);
                     validText = strcmp(inputText, trueText) == 0 ? 1 : 0; // Comparer avec trueText
                     inputText[0] = '\0'; // Réinitialiser le texte saisi
-                    printf("Texte valide: %d\n", validText); // Debug: afficher le résultat
+                    printf("Texte valide(Utilisateur = Server): %d\n", validText); // Debug: afficher le résultat
                 }
             }
         }
