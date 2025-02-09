@@ -3,11 +3,20 @@
 
 // Constantes
 #define SERVER_PORT 8888
-#define SERVER_ADRESS "10.255.255.254"
+#define SERVER_ADRESS "127.0.0.1"
 #define BUFFER_SIZE 1024
 #define MAX_CLIENTS 10
 #define MAX_CAR 50
 #define NB_SECONDES 20
+
+// Messages :
+#define MSG_DEB_MANCHE "La manche commence !"
+#define MSG_FIN_MANCHE "La manche est terminée !"
+#define MSG_FIN_PARTIE "La partie est terminée !"
+#define MSG_ATTENTE "En attente d'une partie"
+#define MSG_WAIT_CHRONO "Plus que "
+#define MSG_SECS " secondes !"
+#define MSG_SEC " seconde !"
 
 
 // Codes : 

@@ -12,13 +12,20 @@
 
 int seconds;
 SDL_Surface *imageSurface;
+SDL_Surface* chronoSurface;
+SDL_Texture *chronoTexture;
 SDL_Texture *texture;
 SDL_Window *window;
 SDL_Renderer *renderer;
 TTF_Font *font;
 
+
 const char *trueText;
 int validText;
+
+SDL_Color textColor = {0, 0, 0};
+SDL_Rect chronoProperties = {380, 0, 440, 50};
+char chronoText[256] = MSG_ATTENTE;
 
 
 void *receive_messages(void *arg) {
@@ -42,6 +49,13 @@ void *receive_messages(void *arg) {
             // CHRONO
             if (strcmp(code, CHRONO) == 0) {
                 printf("%s>Message du serveur reçu : \n\t- Code : [%s]\n\t- Message : %s%s\n\n",D_BLEU, code, message, F_BLEU);
+                snprintf(chronoText, sizeof(chronoText), "%s%s%s", MSG_WAIT_CHRONO, message, MSG_SECS);
+                if (strcmp(message,"1") == 0) {
+                    snprintf(chronoText, sizeof(chronoText), "%s%s%s", MSG_WAIT_CHRONO, message, MSG_SEC);
+                    sleep(1);
+                    snprintf(chronoText, sizeof(chronoText), "%s", MSG_ATTENTE);
+                }
+
                 
             // NEW_IMG
             }else if(strcmp(code, NEW_IMG) == 0){
@@ -443,7 +457,7 @@ int main(int argc, char *argv[]) {
         
 
         // Afficher le texte
-        SDL_Color textColor = {0, 0, 0};
+        
         SDL_Surface *textSurface = TTF_RenderText_Blended(font, inputText, textColor);
         if (textSurface) {
             SDL_Texture *textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
@@ -453,6 +467,22 @@ int main(int argc, char *argv[]) {
             SDL_FreeSurface(textSurface);     
             SDL_DestroyTexture(textTexture);
         }
+
+        chronoSurface = TTF_RenderText_Solid(font, chronoText, textColor);
+        if (chronoSurface) {
+            SDL_Texture *chronoTexture = SDL_CreateTextureFromSurface(renderer, chronoSurface);
+            SDL_Rect chronoRect = {chronoProperties.x + 5, chronoProperties.y + (chronoProperties.h - chronoSurface->h) / 2, chronoSurface->w, chronoSurface->h};
+        
+            SDL_RenderCopy(renderer, chronoTexture, NULL, &chronoRect);
+            
+            SDL_FreeSurface(chronoSurface);     
+            SDL_DestroyTexture(chronoTexture); 
+        }
+        
+        
+        
+
+
 
         
 
