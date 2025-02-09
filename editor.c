@@ -18,7 +18,6 @@ SDL_Texture *texture;
 SDL_Window *window;
 SDL_Renderer *renderer;
 TTF_Font *font;
-int displayValidText = -1;
 
 
 const char *trueText;
@@ -50,33 +49,13 @@ void *receive_messages(void *arg) {
             // CHRONO
             if (strcmp(code, CHRONO) == 0) {
                 printf("%s>Message du serveur reçu : \n\t- Code : [%s]\n\t- Message : %s%s\n\n",D_BLEU, code, message, F_BLEU);
-                // On vérifie si l'utilisateur a trouvé le mot
-                if (displayValidText == 1) {
-                    snprintf(chronoText, sizeof(chronoText), "%s", MSG_WIN_WORD);
-                    if (strcmp(message,"1") == 0) {
-                        sleep(1);
-                        snprintf(chronoText, sizeof(chronoText), "%s", MSG_ATTENTE);
-                        displayValidText = -1;
-                    }
-                } else if (displayValidText == 0)
-                    // On vérifie si l'utilisateur n'a pas trouvé le mot
-                {
-                    snprintf(chronoText, sizeof(chronoText), "%s", MSG_LOSE_WORD);
-                    sleep(3);
-                    displayValidText = -1;
+                snprintf(chronoText, sizeof(chronoText), "%s%s%s", MSG_WAIT_CHRONO, message, MSG_SECS);
+                if (strcmp(message,"1") == 0) {
+                    snprintf(chronoText, sizeof(chronoText), "%s%s%s", MSG_WAIT_CHRONO, message, MSG_SEC);
+                    sleep(1);
+                    snprintf(chronoText, sizeof(chronoText), "%s", MSG_ATTENTE);
                 }
-                 else {
-                    // On affiche le chrono si l'utilisateur n'a pas encore trouvé le mot
-                    snprintf(chronoText, sizeof(chronoText), "%s%s%s", MSG_WAIT_CHRONO, message, MSG_SECS);
-                    if (strcmp(message,"1") == 0) {
-                        snprintf(chronoText, sizeof(chronoText), "%s%s%s", MSG_WAIT_CHRONO, message, MSG_SEC);
-                        sleep(1);
-                        snprintf(chronoText, sizeof(chronoText), "%s", MSG_SHAME);
-                        sleep(1);
-                        snprintf(chronoText, sizeof(chronoText), "%s", MSG_ATTENTE);
-                        displayValidText = -1;
-                    }
-                }
+
                 
             // NEW_IMG
             }else if(strcmp(code, NEW_IMG) == 0){
@@ -114,7 +93,6 @@ void *receive_messages(void *arg) {
             }else if(strcmp(code, MESSAGE) == 0){
                 printf("%s>Message du serveur reçu : \n\t- Code : [%s]\n\t- Message : %s%s\n\n",D_JAUNE, code, message, F_JAUNE);
                 if(strcmp(message, "OK") == 0){
-                    displayValidText = 1;
                     printf("%s>Chargement de l'image de base : ./img_acceuil/Fond_Gris.jpg%s\n\n\n", D_ROUGE, F_ROUGE);
                     imageSurface = IMG_Load("./img_acceuil/Fond_Gris.jpg");
                     if (!imageSurface) {
@@ -138,12 +116,10 @@ void *receive_messages(void *arg) {
                         SDL_Quit();
                         pthread_exit(NULL);
                     }
-                } else {
-                    displayValidText = 0;
                 }
             // POINTS
             }else if(strcmp(code, POINTS) == 0){
-                
+                printf("%s>Message du serveur reçu : \n\t- Code : [%s]\n\t- Nombre de points : %s%s\n\n",D_VERT, code, message, F_VERT);
             // AUTRE
             }else{
                 printf(">Message du serveur reçu : \n\t- Message : %s\n\n",buffer);

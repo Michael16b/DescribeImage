@@ -12,8 +12,11 @@ int server_socket;
 
 // Variables pour les messages
 Client clients[MAX_CLIENTS];
+int TabScores[MAX_CLIENTS];
+int MotTrouveXFois = 0;
 int client_count = 0;
 pthread_mutex_t client_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t points_lock = PTHREAD_MUTEX_INITIALIZER;
 
 // Variables sur la partie en cours
 bool Jeu_En_Cours = false;
@@ -185,6 +188,7 @@ void* chrono(void* arg) {
     int secondes_restantes = *(int*)arg; // Cast du pointeur pour récupérer la durée
     char buffer[BUFFER_SIZE];
     char message[BUFFER_SIZE];
+    char reponse[MAX_CAR];
 
     while (1){
         if(Manche_En_Cours == true){
@@ -208,6 +212,21 @@ void* chrono(void* arg) {
             pthread_mutex_lock(&infos_manche_lock);
             Manche_En_Cours = false;
             pthread_mutex_unlock(&infos_manche_lock);
+
+            // Envoi des scores aux clients
+            pthread_mutex_lock(&points_lock);
+            for(int i = 0; i<client_count; i++){
+                // Préparation de la variable à envoyer au client actuel
+                sprintf(reponse, "%s%d\n", POINTS, TabScores[i]);
+                printf("%sTabScore[%d] : %d%s\n", D_VERT,i,TabScores[i], F_VERT);
+
+                sendto(server_socket, reponse, strlen(reponse), 0,
+                    (struct sockaddr *)&clients[i].addr, clients[i].addr_len);
+            }
+            // Réinitialisation du nombre de fois que le mot à été trouvé (car fin de manche = nv mot)
+            MotTrouveXFois = 0;
+            pthread_mutex_unlock(&points_lock);
+
             printf("Chronomètre terminé !\n");
 
         }
@@ -227,6 +246,10 @@ char* test_mot(char* msgClient){
         }
     }
     return "KO";
+}
+
+int getScore(){
+    return 100 - (MotTrouveXFois * 10);
 }
 
 void *handle_client_messages(void *arg) {
@@ -295,20 +318,35 @@ void *handle_client_messages(void *arg) {
                         sprintf(message, "%s", buffer+4);
 
                         if (strcmp(code, MANCHE) == 0) {
+                            // Affichage sur le terminal
                             printf("%s>Message du client reçu : \n\t- Code : [%s]\n\t- Message : %s%s\n\n",D_BLEU, code, message, F_BLEU);
                             printf("%sReponse test_mot: %s\n\t->%s\n%s\n",D_ROUGE, test_mot(message),message, F_ROUGE);
+                            
+
+                            // Préparation de la variable à envoyer au client actuel
                             sprintf(reponse, "%s%s", MESSAGE, test_mot(message));
-                            envoi_message(reponse);
+                            reponse[strcspn(reponse, "\n")] = '\0';
+
+                            sendto(server_socket, reponse, strlen(reponse), 0,
+                                (struct sockaddr *)&clients[i].addr, clients[i].addr_len);
+
+                            // MAJ Score du client et nombre de fois que le mot à été trouvé
+                            pthread_mutex_lock(&points_lock);
+                            printf("\t\tAVANT AUGMENTATION DES POINTS DU CLIENT %d\n\n", i);
+                            if(strcmp(test_mot(message), "OK") == 0){
+                                TabScores[i] += getScore();
+                                printf("INTRA AUGMENTATION : GetScore = %d\n", getScore());
+                                if(MotTrouveXFois<5){
+                                    printf("MotTrouveXFois : %d -> %d\n",MotTrouveXFois, MotTrouveXFois+1);
+                                    MotTrouveXFois ++;
+                                }
+                            }
+                            pthread_mutex_unlock(&points_lock);
+                            printf("\t\t APRES AUGMENTATION DES POINTS DU CLIENT %d\n\n", i);
                         }
 
                         
                     }
-                    // TODO : Test de véracité du mot du client
-                    // Si le client à envoyé un message (autre que la première connexion)
-                    // On regarde si la manche est en cours
-                    // On test le contenu de ce message et renvoi si c'est vrai ou faux
-                    // Si c'est vrai, on calcul le nombre de points en fonction de la rapidité de la personne
-
                 }
             }
             if (!found && client_count < MAX_CLIENTS) {
@@ -348,6 +386,7 @@ int main() {
     pthread_t recv_thread, send_thread;
     pthread_t chrono_thread;
     int duree = NB_SECONDES; 
+    memset(TabScores, 0, sizeof(TabScores));
 
 
     if(pthread_create(&recv_thread, NULL, handle_client_messages, (void *)&server_socket) != 0){
