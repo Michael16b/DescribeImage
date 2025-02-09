@@ -5,9 +5,113 @@
 #include <dirent.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <pthread.h>
 #include "types.h"
 
 int seconds;
+SDL_Surface *imageSurface;
+SDL_Texture *texture;
+SDL_Window *window;
+SDL_Renderer *renderer;
+TTF_Font *font;
+
+const char *trueText;
+int validText;
+
+
+void *receive_messages(void *arg) {
+    int client_socket = *(int *)arg;
+    char buffer[BUFFER_SIZE];
+    char code[4];
+    char message[MAX_CAR];
+    char chemin_image[NB_MAX_LETTERS];
+
+    // BOUCLE DE RECEPTION DES MESSAGES DU SERVEUR
+    while (1) {
+        memset(buffer, 0, BUFFER_SIZE);
+        int recv_len = recvfrom(client_socket, buffer, BUFFER_SIZE, 0, NULL, NULL);
+        if (recv_len > 0) {
+            buffer[recv_len] = '\0';
+            
+            sprintf(code, "%.4s", buffer);
+            sprintf(message, "%s", buffer+4);
+
+            // SWITCH SUR LE CODE -> CHRONO - NEW_IMG - MESSAGE
+            // CHRONO
+            if (strcmp(code, CHRONO) == 0) {
+                printf("%s>Message du serveur reçu : \n\t- Code : [%s]\n\t- Message : %s%s\n\n",D_BLEU, code, message, F_BLEU);
+                
+            // NEW_IMG
+            }else if(strcmp(code, NEW_IMG) == 0){
+                printf("%s>Message du serveur reçu : \n\t- Code : [%s]\n\t- Message : %s%s\n\n",D_ROUGE, code, message, F_ROUGE);
+                    // Charger une image PNG
+                    sprintf(chemin_image, "%s%s", IMAGE_FOLDER, message);
+                    printf("%s>Chargement de l'image : %s%s\n\n\n", D_ROUGE, chemin_image, F_ROUGE);
+                    imageSurface = IMG_Load(chemin_image);
+                    if (!imageSurface) {
+                        printf("Erreur chargement image: %s\n", IMG_GetError());
+                        SDL_DestroyRenderer(renderer);
+                        SDL_DestroyWindow(window);
+                        IMG_Quit();
+                        SDL_Quit();
+                        pthread_exit(NULL);
+                    }
+
+                    // Créer une texture à partir de la surface
+                    texture = SDL_CreateTextureFromSurface(renderer, imageSurface);
+                    SDL_FreeSurface(imageSurface);  // On peut libérer la surface après avoir créé la texture
+
+                    if (!texture) {
+                        printf("Erreur création texture: %s\n", SDL_GetError());
+                        SDL_DestroyRenderer(renderer);
+                        SDL_DestroyWindow(window);
+                        IMG_Quit();
+                        SDL_Quit();
+                        pthread_exit(NULL);
+                    }
+
+                    // trueText = chemin_image;
+                    // validText = 0; // Boolean (1 = true, 0 = false)*/
+
+            // MESSAGE
+            }else if(strcmp(code, MESSAGE) == 0){
+                printf("%s>Message du serveur reçu : \n\t- Code : [%s]\n\t- Message : %s%s\n\n",D_JAUNE, code, message, F_JAUNE);
+                if(strcmp(message, "OK") == 0){
+                    printf("%s>Chargement de l'image de base : ./img_acceuil/Fond_Gris.jpg%s\n\n\n", D_ROUGE, F_ROUGE);
+                    imageSurface = IMG_Load("./img_acceuil/Fond_Gris.jpg");
+                    if (!imageSurface) {
+                        printf("Erreur chargement image: %s\n", IMG_GetError());
+                        SDL_DestroyRenderer(renderer);
+                        SDL_DestroyWindow(window);
+                        IMG_Quit();
+                        SDL_Quit();
+                        pthread_exit(NULL);
+                    }
+
+                    // Créer une texture à partir de la surface
+                    texture = SDL_CreateTextureFromSurface(renderer, imageSurface);
+                    SDL_FreeSurface(imageSurface);  // On peut libérer la surface après avoir créé la texture
+
+                    if (!texture) {
+                        printf("Erreur création texture: %s\n", SDL_GetError());
+                        SDL_DestroyRenderer(renderer);
+                        SDL_DestroyWindow(window);
+                        IMG_Quit();
+                        SDL_Quit();
+                        pthread_exit(NULL);
+                    }
+                }
+            // AUTRE
+            }else{
+                printf(">Message du serveur reçu : \n\t- Message : %s\n\n",buffer);
+            }
+        }
+    }
+
+    return NULL;
+}
 
 int count_files(const char *directory) {
     struct dirent *entry;
@@ -38,6 +142,7 @@ int count_files(const char *directory) {
 
     return count;
 }
+
 char* GetRidOfString(char* wordOrSentence, const char* delim) {
     int len_delim = strlen(delim);
     char *pos;
@@ -57,6 +162,7 @@ char* GetRidOfString(char* wordOrSentence, const char* delim) {
 
     return result;
 }
+
 Dictionnaire count_word(Dictionnaire imgTable, char* words) {
     // int cpt = 0;
 
@@ -90,6 +196,7 @@ Dictionnaire count_word(Dictionnaire imgTable, char* words) {
 
     return imgTable;
 }
+
 Dictionnaire* getImgTable(int countImgFiles) {
     const char* imgFolder = "./img";
     struct dirent * entree;
@@ -121,6 +228,7 @@ Dictionnaire* getImgTable(int countImgFiles) {
 
     return imgTable;
 } 
+
 int generate_random_int(int min, int max) {
     int random_number = min + rand() % (max - min + 1);
     printf("Nombre aléatoire entre %d et %d : %d\n", min, max, random_number);
@@ -137,7 +245,6 @@ int checkWord(const Dictionnaire* dict, const char* mot) {
     }
     return 0; // Mot non trouvé
 }
-
 
 int init_sdl(SDL_Window **window, SDL_Renderer **renderer) {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
@@ -166,7 +273,7 @@ int init_sdl(SDL_Window **window, SDL_Renderer **renderer) {
 int main(int argc, char *argv[]) {
 
     // Window Game    
-    SDL_Window *window = SDL_CreateWindow("DescribeImage", 
+    window = SDL_CreateWindow("DescribeImage", 
                                           SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 
                                           640, 480, SDL_WINDOW_SHOWN);
     if (!window) {
@@ -177,7 +284,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Créer un renderer
-    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
     if (!renderer) {
         printf("Erreur création renderer: %s\n", SDL_GetError());
         SDL_DestroyWindow(window);
@@ -220,7 +327,7 @@ int main(int argc, char *argv[]) {
     
 
     // Charger la police pour afficher du texte
-    TTF_Font *font = TTF_OpenFont(fontName, 24);
+    font = TTF_OpenFont(fontName, 24);
     if (!font) {
         printf("Erreur chargement police: %s\n", TTF_GetError());
         SDL_DestroyRenderer(renderer);
@@ -234,7 +341,7 @@ int main(int argc, char *argv[]) {
     
     
     // Charger une image PNG
-    SDL_Surface *imageSurface = IMG_Load(pathImg);
+    imageSurface = IMG_Load("./img_acceuil/Fond_Gris.jpg");
     if (!imageSurface) {
         printf("Erreur chargement image: %s\n", IMG_GetError());
         SDL_DestroyRenderer(renderer);
@@ -247,7 +354,7 @@ int main(int argc, char *argv[]) {
     
 
     // Créer une texture à partir de la surface
-    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, imageSurface);
+    texture = SDL_CreateTextureFromSurface(renderer, imageSurface);
     SDL_FreeSurface(imageSurface);  // On peut libérer la surface après avoir créé la texture
 
     if (!texture) {
@@ -259,12 +366,33 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    const char *trueText = pathImg;
+    trueText = pathImg;
+    validText = 0; // Boolean (1 = true, 0 = false)
 
     
-    int validText = 0; // Boolean (1 = true, 0 = false)
 
+    // Avant la boucle infinie, on créer les threads d'écoute et on prépare l'envoi de messages au serv
+    int client_socket;
+    struct sockaddr_in server_addr;
+    char message[BUFFER_SIZE];
+
+    if ((client_socket = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        perror("Erreur lors de la création du socket");
+        exit(EXIT_FAILURE);
+    }
     
+    memset(&server_addr, 0, sizeof(server_addr));
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_addr.s_addr = inet_addr(SERVER_ADRESS);
+    server_addr.sin_port = htons(SERVER_PORT);
+    
+    // Envoyer un premier message pour s'identifier au serveur
+    strcpy(message, "Bonjour, serveur !");
+    sendto(client_socket, message, strlen(message), 0, 
+           (struct sockaddr *)&server_addr, sizeof(server_addr));
+
+    pthread_t recv_thread;
+    pthread_create(&recv_thread, NULL, receive_messages, (void *)&client_socket);
 
     while (running) {
         while (SDL_PollEvent(&event)) {
@@ -284,6 +412,10 @@ int main(int argc, char *argv[]) {
                 if (strlen(inputText) > 0) { // Vérifier si le champ de texte n'est pas vide
                     printf("Texte valide(Utilisateur): %s\n", inputText);
                     printf("Texte valide(Server): %s\n", trueText);
+                    // Envoi du résultat au serv
+                    sprintf(message, "%s%s", MANCHE, inputText);
+                    sendto(client_socket, message, strlen(message), 0, 
+                        (struct sockaddr *)&server_addr, sizeof(server_addr));
                     validText = strcmp(inputText, trueText) == 0 ? 1 : 0; // Comparer avec trueText
                     inputText[0] = '\0'; // Réinitialiser le texte saisi
                     printf("Texte valide(Utilisateur = Server): %d\n", validText); // Debug: afficher le résultat
@@ -329,6 +461,8 @@ int main(int argc, char *argv[]) {
         
     }
 
+
+    close(client_socket);
     SDL_DestroyTexture(texture);
     TTF_CloseFont(font);
     SDL_DestroyRenderer(renderer);
