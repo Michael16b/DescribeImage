@@ -24,6 +24,7 @@
 #define MESSAGE "9240"
 #define MANCHE "2356"
 #define NEW_IMG "1203"
+#define POINTS "3474"
 
 // Couleurs d'écritures : 
 #define D_ROUGE "\033[0;31m"

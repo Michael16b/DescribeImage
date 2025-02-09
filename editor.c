@@ -45,7 +45,7 @@ void *receive_messages(void *arg) {
             sprintf(code, "%.4s", buffer);
             sprintf(message, "%s", buffer+4);
 
-            // SWITCH SUR LE CODE -> CHRONO - NEW_IMG - MESSAGE
+            // SWITCH SUR LE CODE -> CHRONO - NEW_IMG - MESSAGE - POINTS
             // CHRONO
             if (strcmp(code, CHRONO) == 0) {
                 printf("%s>Message du serveur reçu : \n\t- Code : [%s]\n\t- Message : %s%s\n\n",D_BLEU, code, message, F_BLEU);
@@ -117,6 +117,9 @@ void *receive_messages(void *arg) {
                         pthread_exit(NULL);
                     }
                 }
+            // POINTS
+            }else if(strcmp(code, POINTS) == 0){
+                
             // AUTRE
             }else{
                 printf(">Message du serveur reçu : \n\t- Message : %s\n\n",buffer);
