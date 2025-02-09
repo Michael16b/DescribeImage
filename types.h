@@ -17,6 +17,9 @@
 #define MSG_WAIT_CHRONO "Plus que "
 #define MSG_SECS " secondes !"
 #define MSG_SEC " seconde !"
+#define MSG_WIN_WORD "Bonne reponse !"
+#define MSG_LOSE_WORD "Mauvaise reponse !"
+#define MSG_SHAME "Dommage !"
 
 
 // Codes : 
