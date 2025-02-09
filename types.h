@@ -20,6 +20,7 @@
 #define MSG_WIN_WORD "Bonne reponse !"
 #define MSG_LOSE_WORD "Mauvaise reponse !"
 #define MSG_SHAME "Dommage !"
+#define MSG_POINTS "pts"
 
 
 // Codes : 

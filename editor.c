@@ -13,7 +13,7 @@
 int seconds;
 SDL_Surface *imageSurface;
 SDL_Surface* chronoSurface;
-SDL_Texture *chronoTexture;
+SDL_Surface *pointsSurface;
 SDL_Texture *texture;
 SDL_Window *window;
 SDL_Renderer *renderer;
@@ -22,10 +22,13 @@ TTF_Font *font;
 
 const char *trueText;
 int validText;
+int displayValidText = -1;
 
 SDL_Color textColor = {0, 0, 0};
 SDL_Rect chronoProperties = {380, 0, 440, 50};
+SDL_Rect pointsProperties = {0, 0, 440, 50};
 char chronoText[256] = MSG_ATTENTE;
+char pointsText[256] = "0 pt"; 
 
 
 void *receive_messages(void *arg) {
@@ -49,13 +52,33 @@ void *receive_messages(void *arg) {
             // CHRONO
             if (strcmp(code, CHRONO) == 0) {
                 printf("%s>Message du serveur reçu : \n\t- Code : [%s]\n\t- Message : %s%s\n\n",D_BLEU, code, message, F_BLEU);
-                snprintf(chronoText, sizeof(chronoText), "%s%s%s", MSG_WAIT_CHRONO, message, MSG_SECS);
-                if (strcmp(message,"1") == 0) {
-                    snprintf(chronoText, sizeof(chronoText), "%s%s%s", MSG_WAIT_CHRONO, message, MSG_SEC);
-                    sleep(1);
-                    snprintf(chronoText, sizeof(chronoText), "%s", MSG_ATTENTE);
+                // On vérifie si l'utilisateur a trouvé le mot
+                if (displayValidText == 1) {
+                    snprintf(chronoText, sizeof(chronoText), "%s", MSG_WIN_WORD);
+                    if (strcmp(message,"1") == 0) {
+                        sleep(1);
+                        snprintf(chronoText, sizeof(chronoText), "%s", MSG_ATTENTE);
+                        displayValidText = -1;
+                    }
+                } else if (displayValidText == 0)
+                    // On vérifie si l'utilisateur n'a pas trouvé le mot
+                {
+                    snprintf(chronoText, sizeof(chronoText), "%s", MSG_LOSE_WORD);
+                    sleep(3);
+                    displayValidText = -1;
                 }
-
+                 else {
+                    // On affiche le chrono si l'utilisateur n'a pas encore trouvé le mot
+                    snprintf(chronoText, sizeof(chronoText), "%s%s%s", MSG_WAIT_CHRONO, message, MSG_SECS);
+                    if (strcmp(message,"1") == 0) {
+                        snprintf(chronoText, sizeof(chronoText), "%s%s%s", MSG_WAIT_CHRONO, message, MSG_SEC);
+                        sleep(1);
+                        snprintf(chronoText, sizeof(chronoText), "%s", MSG_SHAME);
+                        sleep(1);
+                        snprintf(chronoText, sizeof(chronoText), "%s", MSG_ATTENTE);
+                        displayValidText = -1;
+                    }
+                }
                 
             // NEW_IMG
             }else if(strcmp(code, NEW_IMG) == 0){
@@ -93,6 +116,7 @@ void *receive_messages(void *arg) {
             }else if(strcmp(code, MESSAGE) == 0){
                 printf("%s>Message du serveur reçu : \n\t- Code : [%s]\n\t- Message : %s%s\n\n",D_JAUNE, code, message, F_JAUNE);
                 if(strcmp(message, "OK") == 0){
+                    displayValidText = 1;
                     printf("%s>Chargement de l'image de base : ./img_acceuil/Fond_Gris.jpg%s\n\n\n", D_ROUGE, F_ROUGE);
                     imageSurface = IMG_Load("./img_acceuil/Fond_Gris.jpg");
                     if (!imageSurface) {
@@ -116,11 +140,13 @@ void *receive_messages(void *arg) {
                         SDL_Quit();
                         pthread_exit(NULL);
                     }
+                } else {
+                    displayValidText = 0;
                 }
             // POINTS
             }else if(strcmp(code, POINTS) == 0){
                 printf("%s>Message du serveur reçu : \n\t- Code : [%s]\n\t- Nombre de points : %s%s\n\n",D_VERT, code, message, F_VERT);
-            // AUTRE
+                snprintf(pointsText, sizeof(pointsText), "%s%s", message, MSG_POINTS);
             }else{
                 printf(">Message du serveur reçu : \n\t- Message : %s\n\n",buffer);
             }
@@ -481,14 +507,18 @@ int main(int argc, char *argv[]) {
             SDL_FreeSurface(chronoSurface);     
             SDL_DestroyTexture(chronoTexture); 
         }
-        
-        
-        
 
-
-
+        pointsSurface = TTF_RenderText_Solid(font, pointsText, textColor);
+        if (pointsSurface) {
+            SDL_Texture *pointsTexture = SDL_CreateTextureFromSurface(renderer, pointsSurface);
+            SDL_Rect pointsRect = {pointsProperties.x + 5, pointsProperties.y + (pointsProperties.h - pointsSurface->h) / 2, pointsSurface->w, pointsSurface->h};
         
-
+            SDL_RenderCopy(renderer, pointsTexture, NULL, &pointsRect);
+            
+            SDL_FreeSurface(pointsSurface);     
+            SDL_DestroyTexture(pointsTexture); 
+        }
+        
         // Afficher le rendu
         SDL_RenderPresent(renderer);
         
