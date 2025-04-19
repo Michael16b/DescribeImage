@@ -29,9 +29,17 @@ sudo apt install libsdl2-ttf-dev
 ```
 
 ## ⚙️ Compilation
-`gcc -o editor editor.c -lSDL2 -lSDL2_image -lSDL2_ttf
+### Côté Client
+```bash
+gcc -o editor editor.c -lSDL2 -lSDL2_image -lSDL2_ttf
 ./editor
-`
+```
+### Côté Serveur
+
+```bash
+gcc -o server server.c -pthread
+./server
+```
 
 ## Compilation lorsque l'executable existe déjà
 make rebuild
